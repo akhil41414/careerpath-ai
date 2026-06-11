@@ -809,8 +809,7 @@ function enterApp() {
 
 function signOut() {
   S.token = ''; S.user = null;
-  localStorage.removeItem('cp_token');
-  localStorage.removeItem('cp_user');
+  localStorage.clear();
   document.getElementById('app').style.display     = 'none';
   document.getElementById('landing').style.display = 'block';
 }
