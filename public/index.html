@@ -818,6 +818,11 @@ function signOut() {
 // APP INIT — runs after login
 // ============================================================
 async function initApp() {
+  // Reset state for each new user session — prevents data leaking between accounts
+  S.skills = [];
+  S.interests = [];
+  S.stats = { match:0, resume:0, job:0, road:0 };
+  S.lastResume = '';
   const name = S.user?.name || 'Student';
   document.getElementById('sb-name').textContent    = name;
   document.getElementById('sb-email').textContent   = S.user?.email || '';
