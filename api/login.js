@@ -25,8 +25,16 @@ module.exports = async (req, res) => {
 
     await supabase.from('users').update({ last_login: new Date().toISOString() }).eq('id', user.id);
 
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    const device = req.headers['user-agent'] || 'unknown';
+
     const token = createToken({ userId: user.id, email: user.email, name: user.name });
-    sendAdminAlert({ type: 'login', name: user.name, email: user.email });
+    sendAdminAlert({ 
+      type: 'login', 
+      name: user.name, 
+      email: user.email,
+      metadata: { IP: ip, Device: device }
+    });
 
     return res.status(200).json({ token, user: { id: user.id, name: user.name, email: user.email } });
   } catch (e) {

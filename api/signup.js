@@ -30,8 +30,16 @@ module.exports = async (req, res) => {
       .single();
     if (error) throw error;
 
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    const device = req.headers['user-agent'] || 'unknown';
+
     const token = createToken({ userId: user.id, email: user.email, name: user.name });
-    sendAdminAlert({ type: 'signup', name: user.name, email: user.email });
+    sendAdminAlert({ 
+      type: 'signup', 
+      name: user.name, 
+      email: user.email,
+      metadata: { IP: ip, Device: device }
+    });
 
     return res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email } });
   } catch (e) {
