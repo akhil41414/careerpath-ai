@@ -183,7 +183,7 @@ button{font-family:var(--fb)}
 #app{display:none;flex-direction:row;height:100vh;overflow:hidden}
 
 /* route waypoint sidebar */
-.app-sidebar{width:230px;flex-shrink:0;background:var(--paper-dim);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto;position:relative}
+.app-sidebar{width:230px;flex-shrink:0;background:rgba(240,233,216,0.75);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto;position:relative;z-index:20}
 .app-sb-logo{display:flex;align-items:center;gap:9px;padding:22px 24px;font-family:var(--fd);font-size:18px;font-weight:600}
 .route-nav{position:relative;padding:8px 0 16px 0}
 .route-nav-line{position:absolute;left:35px;top:6px;bottom:16px;width:2px;background:var(--line2)}
@@ -210,7 +210,14 @@ button{font-family:var(--fb)}
 .topbar-badge{display:none}
 .topbar-badge.show{display:inline-flex;font-family:var(--fm);font-size:10.5px;color:var(--pine);background:var(--pine-dim);padding:5px 12px;border-radius:100px;align-items:center;gap:6px}
 .app-page{display:none;padding:32px 36px}
-.app-page.active{display:block}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.app-page.active{
+  display:block;
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
 .page-h{font-family:var(--fd);font-size:clamp(26px,2.8vw,38px);font-weight:600;line-height:1.1;margin-bottom:8px}
 .page-sub{font-size:14px;color:var(--sand);max-width:560px;line-height:1.65}
 
@@ -382,6 +389,41 @@ button{font-family:var(--fb)}
 .save-ok{font-family:var(--fm);font-size:10.5px;color:var(--pine);margin-top:9px;display:none}
 @media(max-width:880px){.tool-grid,.f-two-col,.home-2col,.skill-cols,.course-grid,.resume-result-grid{grid-template-columns:1fr}.app-sidebar{display:none}}
 
+/* ===== PREMIUM ENHANCEMENTS ===== */
+.home-card, .cr-card, .showcase-card, .plan, .home-side, .set-card, .sal-bars-card, .testi-card, .how-step-card {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
+}
+.home-card:hover, .cr-card:hover, .showcase-card:hover, .plan:hover, .set-card:hover, .sal-bars-card:hover, .testi-card:hover, .how-step-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(28,20,16,0.06);
+}
+.btn {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.topbar-eyebrow, .route-map-label, .showcase-num, .section-eyebrow, .how-step-num, .plan-tier, .auth-eyebrow, .auth-form-eyebrow, .field-label, .home-banner-eyebrow, .home-stat-l {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.stat-progress-bg {
+  height: 4px;
+  background: var(--line);
+  border-radius: 2px;
+  margin: 10px 0 6px 0;
+  overflow: hidden;
+}
+.stat-progress-fill {
+  height: 100%;
+  background: var(--route);
+  width: 0%;
+  border-radius: 2px;
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.home-stat:nth-child(4) .stat-progress-fill {
+  background: var(--pine);
+}
 </style>
 </head>
 <body>
@@ -415,7 +457,7 @@ button{font-family:var(--fb)}
       <h1>You don't need another quiz.<br>You need <em>your</em> route.</h1>
       <p class="hero-sub">Tell Pathly your skills and what excites you. It maps the careers that actually fit, scores your resume against them, and lays out the exact steps to get there.</p>
       <div class="hero-ctas">
-        <button class="btn btn-route" onclick="showAuth('signup')" style="padding:14px 28px;font-size:15px">Map my career →</button>
+        <button class="btn btn-route" onclick="showAuth('signup')" style="padding:14px 28px;font-size:15px">Design your route →</button>
         <button class="btn btn-ghost" onclick="document.getElementById('how-sec').scrollIntoView({behavior:'smooth'})" style="padding:14px 24px">See how it works</button>
       </div>
       <div class="hero-proof">
@@ -542,7 +584,7 @@ button{font-family:var(--fb)}
 <section class="cta-final">
   <h2>Stop guessing.<br><em>Start mapping.</em></h2>
   <p>Free to start. Two minutes to your first route.</p>
-  <button class="btn btn-route" onclick="showAuth('signup')" style="padding:16px 34px;font-size:15.5px">Map my career →</button>
+  <button class="btn btn-route" onclick="showAuth('signup')" style="padding:16px 34px;font-size:15.5px">Design your route →</button>
 </section>
 
 <footer class="footer">
@@ -617,7 +659,7 @@ button{font-family:var(--fb)}
         <div class="home-banner">
           <svg class="home-banner-route" viewBox="0 0 360 260"><path fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="6 6" d="M30 220 C 80 220, 90 140, 150 130 S 250 60, 330 40"/></svg>
           <div class="home-banner-eyebrow" id="homeGreeting">Welcome back</div>
-          <h2 class="home-banner-h">Your route, <em>so far.</em></h2>
+          <h2 class="home-banner-h">Your trajectory.</h2>
           <p class="home-banner-sub">Run your first analysis to see where the route leads, or pick up a tool you've already started.</p>
           <div style="display:flex;gap:10px">
             <button class="btn btn-route" onclick="showPage('career')" style="padding:10px 20px;font-size:13.5px">Start career analysis →</button>
@@ -626,10 +668,30 @@ button{font-family:var(--fb)}
         </div>
 
         <div class="home-stat-row">
-          <div class="home-stat"><div class="home-stat-l">Career match</div><div class="home-stat-v route-c" id="statMatch">0<sup>%</sup></div><span class="home-stat-link" onclick="showPage('career')">Run analysis</span></div>
-          <div class="home-stat"><div class="home-stat-l">Resume score</div><div class="home-stat-v" id="statResume">0<sup>/100</sup></div><span class="home-stat-link" onclick="showPage('resume')">Score it</span></div>
-          <div class="home-stat"><div class="home-stat-l">Job match</div><div class="home-stat-v" id="statJob">0<sup>%</sup></div><span class="home-stat-link" onclick="showPage('job')">Paste a JD</span></div>
-          <div class="home-stat"><div class="home-stat-l">Roadmap</div><div class="home-stat-v pine-c" id="statRoad">0<sup>%</sup></div><span class="home-stat-link" onclick="showPage('roadmap')">Generate</span></div>
+          <div class="home-stat">
+            <div class="home-stat-l">Career match</div>
+            <div class="home-stat-v route-c" id="statMatch">0<sup>%</sup></div>
+            <div class="stat-progress-bg"><div class="stat-progress-fill" id="progressMatch" style="width:0%"></div></div>
+            <span class="home-stat-link" onclick="showPage('career')">Run analysis</span>
+          </div>
+          <div class="home-stat">
+            <div class="home-stat-l">Resume score</div>
+            <div class="home-stat-v" id="statResume">0<sup>/100</sup></div>
+            <div class="stat-progress-bg"><div class="stat-progress-fill" id="progressResume" style="width:0%"></div></div>
+            <span class="home-stat-link" onclick="showPage('resume')">Score it</span>
+          </div>
+          <div class="home-stat">
+            <div class="home-stat-l">Job match</div>
+            <div class="home-stat-v" id="statJob">0<sup>%</sup></div>
+            <div class="stat-progress-bg"><div class="stat-progress-fill" id="progressJob" style="width:0%"></div></div>
+            <span class="home-stat-link" onclick="showPage('job')">Paste a JD</span>
+          </div>
+          <div class="home-stat">
+            <div class="home-stat-l">Roadmap</div>
+            <div class="home-stat-v pine-c" id="statRoad">0<sup>%</sup></div>
+            <div class="stat-progress-bg"><div class="stat-progress-fill" id="progressRoad" style="width:0%"></div></div>
+            <span class="home-stat-link" onclick="showPage('roadmap')">Generate</span>
+          </div>
         </div>
 
         <div class="home-2col">
@@ -754,7 +816,7 @@ button{font-family:var(--fb)}
 
     <!-- ROADMAP -->
     <div class="app-page" id="page-roadmap">
-      <div class="app-topbar"><div><div class="topbar-eyebrow">Waypoint 4</div><div class="topbar-title">Roadmap</div></div><div class="topbar-badge" id="roadmapBadge">Result ready</div></div>
+      <div class="app-topbar"><div><div class="topbar-eyebrow">Waypoint 4</div><div class="topbar-title" style="display:flex;align-items:center;gap:12px">Roadmap <button class="btn btn-ghost" id="exportBtn" onclick="exportRoadmap()" style="padding:4px 10px;font-size:11px;height:24px;display:none">Export →</button></div></div><div class="topbar-badge" id="roadmapBadge">Result ready</div></div>
       <div style="padding:28px 32px 0">
         <h1 class="page-h">Six stages.<br>Each one ends with something you built.</h1>
         <p class="page-sub">Not a reading list. Every stage names exactly what you'll be able to do by the end of it, with a real project to prove it.</p>
@@ -941,7 +1003,7 @@ function renderAuth(mode){
   `;
   document.getElementById('authFormSide').innerHTML = login ? `
     <div class="auth-form-eyebrow">Sign in</div>
-    <h2 class="auth-form-h">Access your route</h2>
+    <h2 class="auth-form-h">Resume your journey</h2>
     <div class="auth-error" id="authErr"></div>
     <div class="field"><label class="field-label">Email</label><input class="field-input" id="loginEmail" type="email" placeholder="you@school.edu"></div>
     <div class="field"><label class="field-label">Password</label><input class="field-input" id="loginPw" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
@@ -1134,6 +1196,18 @@ function updateStatDisplays() {
   document.getElementById('statResume').innerHTML = S.stats.resume + '<sup>/100</sup>';
   document.getElementById('statJob').innerHTML = S.stats.job + '<sup>%</sup>';
   document.getElementById('statRoad').innerHTML = S.stats.road + '<sup>%</sup>';
+
+  // Animate progress bars
+  const pMatch = document.getElementById('progressMatch');
+  const pResume = document.getElementById('progressResume');
+  const pJob = document.getElementById('progressJob');
+  const pRoad = document.getElementById('progressRoad');
+  
+  if (pMatch) pMatch.style.width = S.stats.match + '%';
+  if (pResume) pResume.style.width = S.stats.resume + '%';
+  if (pJob) pJob.style.width = S.stats.job + '%';
+  if (pRoad) pRoad.style.width = S.stats.road + '%';
+
   renderHomeChart();
 }
 
@@ -1387,6 +1461,8 @@ function renderRoadmapResult(d) {
   });
   html += '</div>';
   document.getElementById('roadmapResult').innerHTML = html;
+  const exportBtn = document.getElementById('exportBtn');
+  if (exportBtn) exportBtn.style.display = 'inline-flex';
   showBadge('roadmapBadge');
 }
 
@@ -1429,6 +1505,30 @@ async function updateRoadmapProgress() {
       await api('/api/profile', { roadmap_result: S.roadmapResult });
     } catch (e) { console.error('Failed to save roadmap progress:', e); }
   }
+}
+
+function exportRoadmap() {
+  if (!S.roadmapResult) return;
+  const goalName = document.getElementById('roadGoal').value || 'My Career Path';
+  let md = `# Career Roadmap: ${goalName}\n\n`;
+  md += `Generated by Pathly on ${new Date().toLocaleDateString()}\n\n`;
+  S.roadmapResult.stages.forEach(s => {
+    md += `## Stage ${s.number}: ${s.title} (${s.duration})\n`;
+    md += `* **Objective**: ${s.objective}\n`;
+    md += `* **Topics**: ${s.topics.join(', ')}\n`;
+    md += `* **Suggested Courses**:\n${s.courses.map(c => `  * ${c}`).join('\n')}\n`;
+    md += `* **Milestone Project**: ${s.project}\n\n`;
+  });
+  
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `roadmap-${goalName.toLowerCase().replace(/\s+/g, '-')}.md`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 // ===== COURSES =====
