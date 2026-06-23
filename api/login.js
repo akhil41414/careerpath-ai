@@ -29,7 +29,7 @@ module.exports = async (req, res) => {
     const device = req.headers['user-agent'] || 'unknown';
 
     const token = createToken({ userId: user.id, email: user.email, name: user.name });
-    sendAdminAlert({ 
+    await sendAdminAlert({ 
       type: 'login', 
       name: user.name, 
       email: user.email,
