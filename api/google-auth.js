@@ -35,16 +35,16 @@ module.exports = async (req, res) => {
     if (!user) {
       // User doesn't exist yet. If they haven't sent a name override, ask them to confirm/edit their name.
       if (!nameOverride) {
-        return res.status(200).json({ isNew: true, email, name: payload.name || '' });
+        return res.status(200).json({ isNew: true, email, name: payload.name || '', picture: payload.picture || '' });
       }
 
-      // Create new user (password_hash is null for Google accounts)
+      // Create new user (insert a dummy hash for Google accounts to satisfy not-null constraint)
       const { data: newUser, error: createErr } = await supabase
         .from('users')
         .insert({ 
           name, 
           email: email.toLowerCase(), 
-          password_hash: null, 
+          password_hash: 'google-auth-only', 
           created_at: new Date().toISOString() 
         })
         .select('id, name, email')
@@ -74,7 +74,7 @@ module.exports = async (req, res) => {
     }
 
     const token = createToken({ userId: user.id, email: user.email, name: user.name });
-    return res.status(200).json({ token, user: { id: user.id, name: user.name, email: user.email } });
+    return res.status(200).json({ token, user: { id: user.id, name: user.name, email: user.email, picture: payload.picture } });
   } catch (e) {
     console.error('Google auth error:', e);
     return res.status(500).json({ error: e.message });

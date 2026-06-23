@@ -19,6 +19,15 @@ module.exports = async (req, res) => {
 
   if (req.method === 'POST') {
     const b = req.body;
+
+    // Synchronize updates to the users table
+    if (b.name !== undefined || b.email !== undefined) {
+      const userUpdate = {};
+      if (b.name !== undefined) userUpdate.name = b.name;
+      if (b.email !== undefined) userUpdate.email = b.email;
+      await supabase.from('users').update(userUpdate).eq('id', user.userId);
+    }
+
     const updateObj = {
       user_id: user.userId,
       updated_at: new Date().toISOString()
