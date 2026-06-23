@@ -967,7 +967,8 @@ const S = {
   user: JSON.parse(localStorage.getItem('pathly_user') || 'null'),
   skills: [], interests: [], lastResume: '',
   stats: { match: 0, resume: 0, job: 0, road: 0 },
-  visited: new Set(['home'])
+  visited: new Set(['home']),
+  roadmapResult: null
 };
 
 async function api(path, body) {
@@ -1031,6 +1032,13 @@ function signOut() {
 async function initApp() {
   S.skills = []; S.interests = []; S.stats = { match:0, resume:0, job:0, road:0 }; S.lastResume = '';
   S.visited = new Set(['home']);
+  S.roadmapResult = null;
+
+  if (S.user) {
+    document.getElementById('setName').value = S.user.name || '';
+    document.getElementById('setEmail').value = S.user.email || '';
+  }
+
   const name = S.user?.name || 'there';
   document.getElementById('sbName').textContent = S.user?.name || 'Student';
   document.getElementById('sbEmail').textContent = S.user?.email || '';
@@ -1044,11 +1052,44 @@ async function initApp() {
       if (profile.job_result?.match_score) S.stats.job = profile.job_result.match_score;
       if (profile.name) document.getElementById('setName').value = profile.name;
       if (profile.email) document.getElementById('setEmail').value = profile.email;
-      if (profile.target_role) document.getElementById('setTarget').value = profile.target_role;
-      if (profile.education) document.getElementById('setEdu').value = profile.education;
-      if (profile.experience) document.getElementById('setExp').value = profile.experience;
+      if (profile.target_role) {
+        document.getElementById('setTarget').value = profile.target_role;
+        document.getElementById('resumeRole').value = profile.target_role;
+        document.getElementById('roadGoal').value = profile.target_role;
+        const jobJd = document.getElementById('jobJd');
+        if (jobJd) jobJd.placeholder = `Paste the ${profile.target_role} job description...`;
+      }
+      if (profile.education) {
+        document.getElementById('setEdu').value = profile.education;
+        document.getElementById('eduSelect').value = profile.education;
+      }
+      if (profile.experience) {
+        document.getElementById('setExp').value = profile.experience;
+        document.getElementById('expSelect').value = profile.experience;
+      }
       syncTagsFromProfile();
-      if (profile.career_result?.careers) renderHomeCareers(profile.career_result.careers);
+      if (profile.career_result?.careers) {
+        renderHomeCareers(profile.career_result.careers);
+        renderCareerResult(profile.career_result.careers);
+      }
+      if (profile.resume_result) {
+        renderResumeResult(profile.resume_result);
+      }
+      if (profile.job_result) {
+        renderJobResult(profile.job_result);
+      }
+      if (profile.roadmap_result) {
+        S.roadmapResult = profile.roadmap_result;
+        renderRoadmapResult(profile.roadmap_result);
+        const total = profile.roadmap_result.stages.length;
+        const done = profile.roadmap_result.stages.filter(s => s.completed).length;
+        S.stats.road = total > 0 ? Math.round(done / total * 100) : 0;
+      }
+      if (profile.salary_result) {
+        renderSalaryResult(profile.salary_result);
+        document.getElementById('salaryRole').value = profile.salary_result.role || '';
+        document.getElementById('salaryCountry').value = profile.salary_result.market || '';
+      }
     }
   } catch (e) {}
   renderTags('skill'); renderTags('interest'); renderSettingsTags(); renderHomeChart(); updateStatDisplays();
@@ -1161,10 +1202,32 @@ function errBox(m) {
 function showBadge(id) { const b = document.getElementById(id); if (b) b.classList.add('show'); }
 
 // ===== CAREER EXPLORER =====
+function renderCareerResult(careers) {
+  let html = '';
+  careers.forEach((c, i) => {
+    html += `<div class="cr-card">
+      <div class="cr-rank">Match ${i+1} of 3</div>
+      <div class="cr-top"><div><div class="cr-title">${c.title}</div><div class="cr-field">${c.field || ''}</div></div><div><div class="cr-pct">${c.confidence}%</div><div class="cr-pct-lbl">fit</div></div></div>
+      <div class="cr-meta">${c.salary_range} · demand ${c.demand_score}/100 · ${c.growth_5yr} · ready in ${c.time_to_ready}</div>
+      <div class="cr-reason">${c.reason}</div>
+      <div class="cr-gaps-l">To close the gap</div>
+      <div class="tag-pills" style="margin-top:0">${c.skill_gaps.map(g => `<span class="tag-pill">${g}</span>`).join('')}</div>
+    </div>`;
+  });
+  document.getElementById('careerResult').innerHTML = html;
+  const empty = document.getElementById('careerEmpty');
+  if (empty) empty.style.display = 'none';
+  if (careers[0]?.skill_gaps) {
+    document.getElementById('courseSkill').value = careers[0].skill_gaps.join(', ');
+  }
+  showBadge('careerBadge');
+}
+
 async function runCareerAnalysis() {
   if (!S.token) { showAuth('login'); return; }
   if (!S.skills.length && !S.interests.length) { alert('Add at least one skill or interest first.'); return; }
-  document.getElementById('careerEmpty').style.display = 'none';
+  const empty = document.getElementById('careerEmpty');
+  if (empty) empty.style.display = 'none';
   showLoading('careerResult', 'careerBtn');
   try {
     const data = await api('/api/career', {
@@ -1172,25 +1235,13 @@ async function runCareerAnalysis() {
       education: document.getElementById('eduSelect').value,
       experience: document.getElementById('expSelect').value
     });
-    let html = '';
-    data.careers.forEach((c, i) => {
-      html += `<div class="cr-card">
-        <div class="cr-rank">Match ${i+1} of 3</div>
-        <div class="cr-top"><div><div class="cr-title">${c.title}</div><div class="cr-field">${c.field || ''}</div></div><div><div class="cr-pct">${c.confidence}%</div><div class="cr-pct-lbl">fit</div></div></div>
-        <div class="cr-meta">${c.salary_range} · demand ${c.demand_score}/100 · ${c.growth_5yr} · ready in ${c.time_to_ready}</div>
-        <div class="cr-reason">${c.reason}</div>
-        <div class="cr-gaps-l">To close the gap</div>
-        <div class="tag-pills" style="margin-top:0">${c.skill_gaps.map(g => `<span class="tag-pill">${g}</span>`).join('')}</div>
-      </div>`;
-    });
-    document.getElementById('careerResult').innerHTML = html;
+    renderCareerResult(data.careers);
     S.stats.match = data.careers[0].confidence; updateStatDisplays();
     renderHomeCareers(data.careers);
-    document.getElementById('courseSkill').value = data.careers[0].skill_gaps.join(', ');
-    showBadge('careerBadge');
   } catch (e) { document.getElementById('careerResult').innerHTML = errBox(e.message); }
   clearLoading('careerBtn');
 }
+
 function renderHomeCareers(careers) {
   document.getElementById('homeCareers').innerHTML = careers.map(c => `
     <div class="career-row"><div><div class="career-row-name">${c.title}</div><div class="career-row-sal">${c.salary_range}</div></div><div class="career-row-pct">${c.confidence}%</div></div>
@@ -1215,6 +1266,50 @@ function handleResumeFile(file) {
   };
   r.readAsText(file);
 }
+
+function renderResumeResult(d) {
+  const sc = d.score;
+  const circ = 2 * Math.PI * 40;
+  const fill = (sc / 100) * circ;
+  const col = sc >= 80 ? '#3d5a4c' : sc >= 60 ? '#a0680f' : '#b3261e';
+  const meaning = sc >= 80 ? 'Strong — minor polish only.' : sc >= 60 ? "Workable, but a few fixes will move this a lot." : 'Needs real work before sending this out.';
+
+  const critical = (d.missing_skills || []).map(s => `<div class="sev-item sev-critical">Missing: <strong>${s}</strong></div>`).join('');
+  const improve = (d.suggestions || []).filter(s => s.type !== 'strong').map(s => `<div class="sev-item sev-improve">${s.text}</div>`).join('');
+  const strengths = (d.strengths || []).map(s => `<div class="sev-item sev-strength">${s}</div>`).join('');
+
+  document.getElementById('resumeResult').innerHTML = `
+    <div class="resume-result-grid">
+      <div class="score-circle-wrap">
+        <div class="score-circle"><svg viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="40" fill="none" stroke="#f0e9d8" stroke-width="8"/>
+          <circle cx="50" cy="50" r="40" fill="none" stroke="${col}" stroke-width="8" stroke-dasharray="${fill.toFixed(1)} ${circ.toFixed(1)}" stroke-dashoffset="${(circ*.25).toFixed(1)}" stroke-linecap="round" transform="rotate(-90 50 50)"/>
+        </svg><div class="score-num" style="color:${col}">${sc}</div></div>
+        <div class="score-lbl">out of 100</div>
+        <div class="score-meaning">${meaning}</div>
+      </div>
+      <div>
+        <div class="sev-group">
+          <div class="sev-head" style="color:#b3261e">⬤ Fix first — missing skills</div>
+          ${critical || '<div class="sev-item" style="color:var(--sand)">No critical gaps flagged.</div>'}
+        </div>
+        <div class="sev-group">
+          <div class="sev-head" style="color:#a0680f">⬤ Worth improving</div>
+          ${improve || '<div class="sev-item" style="color:var(--sand)">Nothing major here.</div>'}
+        </div>
+        <div class="sev-group">
+          <div class="sev-head" style="color:#3d5a4c">⬤ Already working</div>
+          ${strengths || '<div class="sev-item" style="color:var(--sand)">—</div>'}
+        </div>
+      </div>
+    </div>`;
+  if (d.missing_skills?.length) {
+    const courseSkill = document.getElementById('courseSkill');
+    if (courseSkill) courseSkill.value = d.missing_skills.join(', ');
+  }
+  showBadge('resumeBadge');
+}
+
 async function runResumeAnalysis() {
   if (!S.token) { showAuth('login'); return; }
   const resume = document.getElementById('resumeText').value.trim();
@@ -1224,77 +1319,77 @@ async function runResumeAnalysis() {
   showLoading('resumeResult', 'resumeBtn');
   try {
     const d = await api('/api/resume', { resumeText: resume, targetRole: role });
-    const sc = d.score;
-    const circ = 2 * Math.PI * 40;
-    const fill = (sc / 100) * circ;
-    const col = sc >= 80 ? '#3d5a4c' : sc >= 60 ? '#a0680f' : '#b3261e';
-    const meaning = sc >= 80 ? 'Strong — minor polish only.' : sc >= 60 ? "Workable, but a few fixes will move this a lot." : 'Needs real work before sending this out.';
-
-    const critical = (d.missing_skills || []).map(s => `<div class="sev-item sev-critical">Missing: <strong>${s}</strong></div>`).join('');
-    const improve = (d.suggestions || []).filter(s => s.type !== 'strong').map(s => `<div class="sev-item sev-improve">${s.text}</div>`).join('');
-    const strengths = (d.strengths || []).map(s => `<div class="sev-item sev-strength">${s}</div>`).join('');
-
-    document.getElementById('resumeResult').innerHTML = `
-      <div class="resume-result-grid">
-        <div class="score-circle-wrap">
-          <div class="score-circle"><svg viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="40" fill="none" stroke="#f0e9d8" stroke-width="8"/>
-            <circle cx="50" cy="50" r="40" fill="none" stroke="${col}" stroke-width="8" stroke-dasharray="${fill.toFixed(1)} ${circ.toFixed(1)}" stroke-dashoffset="${(circ*.25).toFixed(1)}" stroke-linecap="round" transform="rotate(-90 50 50)"/>
-          </svg><div class="score-num" style="color:${col}">${sc}</div></div>
-          <div class="score-lbl">out of 100</div>
-          <div class="score-meaning">${meaning}</div>
-        </div>
-        <div>
-          <div class="sev-group">
-            <div class="sev-head" style="color:#b3261e">⬤ Fix first — missing skills</div>
-            ${critical || '<div class="sev-item" style="color:var(--sand)">No critical gaps flagged.</div>'}
-          </div>
-          <div class="sev-group">
-            <div class="sev-head" style="color:#a0680f">⬤ Worth improving</div>
-            ${improve || '<div class="sev-item" style="color:var(--sand)">Nothing major here.</div>'}
-          </div>
-          <div class="sev-group">
-            <div class="sev-head" style="color:#3d5a4c">⬤ Already working</div>
-            ${strengths || '<div class="sev-item" style="color:var(--sand)">—</div>'}
-          </div>
-        </div>
-      </div>`;
-    S.stats.resume = sc; updateStatDisplays();
-    if (d.missing_skills?.length) document.getElementById('courseSkill').value = d.missing_skills.join(', ');
-    showBadge('resumeBadge');
+    renderResumeResult(d);
+    S.stats.resume = d.score; updateStatDisplays();
   } catch (e) { document.getElementById('resumeResult').innerHTML = errBox(e.message); }
   clearLoading('resumeBtn');
 }
 
 // ===== JOB MATCHER =====
+function renderJobResult(d) {
+  const pct = d.match_score;
+  const col = pct >= 80 ? '#3d5a4c' : pct >= 60 ? '#a0680f' : '#b3261e';
+  const matches = d.matching_skills.map(s => `<div class="skill-pill yes">✓ ${s}</div>`).join('');
+  const misses = d.missing_skills.map(s => `<div class="skill-pill no">✗ ${s}</div>`).join('');
+  const actions = d.recommendations.map(r => `<div class="action-row"><span class="action-arrow">→</span>${r}</div>`).join('');
+  document.getElementById('jobResult').innerHTML = `
+    <div class="match-display"><div class="match-num" style="color:${col}">${pct}%</div><div class="match-lbl">fit</div><div class="match-summary">${d.summary}</div></div>
+    <hr style="border:none;border-top:1px solid var(--line);margin:18px 0">
+    <div class="skill-cols"><div><div class="skill-col-h" style="color:#3d5a4c">What matches</div>${matches}</div><div><div class="skill-col-h" style="color:#b3261e">What's missing</div>${misses}</div></div>
+    <hr style="border:none;border-top:1px solid var(--line);margin:18px 0">
+    <div class="f-label" style="margin-top:0">To close the gap</div>${actions}`;
+  const empty = document.getElementById('jobEmpty');
+  if (empty) empty.style.display = 'none';
+  if (d.missing_skills?.length) {
+    const courseSkill = document.getElementById('courseSkill');
+    if (courseSkill) courseSkill.value = d.missing_skills.join(', ');
+  }
+  showBadge('jobBadge');
+}
+
 async function runJobMatch() {
   if (!S.token) { showAuth('login'); return; }
   const jd = document.getElementById('jobJd').value.trim();
   const resume = S.lastResume || S.skills.map(s => `• ${s}`).join('\n');
   if (!jd) { alert('Paste a job description first.'); return; }
-  document.getElementById('jobEmpty').style.display = 'none';
+  const empty = document.getElementById('jobEmpty');
+  if (empty) empty.style.display = 'none';
   showLoading('jobResult', 'jobBtn');
   try {
     const d = await api('/api/job', { resumeText: resume, jobDescription: jd });
-    const pct = d.match_score;
-    const col = pct >= 80 ? '#3d5a4c' : pct >= 60 ? '#a0680f' : '#b3261e';
-    const matches = d.matching_skills.map(s => `<div class="skill-pill yes">✓ ${s}</div>`).join('');
-    const misses = d.missing_skills.map(s => `<div class="skill-pill no">✗ ${s}</div>`).join('');
-    const actions = d.recommendations.map(r => `<div class="action-row"><span class="action-arrow">→</span>${r}</div>`).join('');
-    document.getElementById('jobResult').innerHTML = `
-      <div class="match-display"><div class="match-num" style="color:${col}">${pct}%</div><div class="match-lbl">fit</div><div class="match-summary">${d.summary}</div></div>
-      <hr style="border:none;border-top:1px solid var(--line);margin:18px 0">
-      <div class="skill-cols"><div><div class="skill-col-h" style="color:#3d5a4c">What matches</div>${matches}</div><div><div class="skill-col-h" style="color:#b3261e">What's missing</div>${misses}</div></div>
-      <hr style="border:none;border-top:1px solid var(--line);margin:18px 0">
-      <div class="f-label" style="margin-top:0">To close the gap</div>${actions}`;
-    S.stats.job = pct; updateStatDisplays();
-    if (d.missing_skills?.length) document.getElementById('courseSkill').value = d.missing_skills.join(', ');
-    showBadge('jobBadge');
+    renderJobResult(d);
+    S.stats.job = d.match_score; updateStatDisplays();
   } catch (e) { document.getElementById('jobResult').innerHTML = errBox(e.message); }
   clearLoading('jobBtn');
 }
 
 // ===== ROADMAP (rebuilt: concrete "you'll be able to" framing) =====
+function renderRoadmapResult(d) {
+  let html = '<div class="rm-list">';
+  d.stages.forEach((s, i) => {
+    const topics = s.topics.map(t => `<span class="tag-pill" style="margin-bottom:4px">${t}</span>`).join('');
+    const courses = s.courses.map(c => `<div class="rm-course-line">${c}</div>`).join('');
+    const checked = s.completed ? 'checked' : '';
+    html += `<div class="rm-row">
+      <div class="rm-row-head" onclick="toggleStage(${i})">
+        <div class="rm-row-num">0${s.number}</div><div class="rm-row-title">${s.title}</div><div class="rm-row-dur">${s.duration}</div>
+        <span class="rm-chevron" id="rmChev${i}">▾</span>
+      </div>
+      <div class="rm-row-body" id="rmBody${i}">
+        <div class="rm-checkbox"><input type="checkbox" id="rmCheck${i}" onchange="updateRoadmapProgress()" ${checked}><label for="rmCheck${i}">Mark complete</label></div>
+        <div class="rm-can-do"><strong>By the end of this stage:</strong> ${s.objective}</div>
+        <div class="f-label" style="margin-top:0">Topics</div>
+        <div class="tag-pills" style="margin-bottom:14px">${topics}</div>
+        <div class="f-label" style="margin-top:0">Courses</div>${courses}
+        <div class="rm-project"><strong>Ship this:</strong> ${s.project}</div>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById('roadmapResult').innerHTML = html;
+  showBadge('roadmapBadge');
+}
+
 async function runRoadmap() {
   if (!S.token) { showAuth('login'); return; }
   const goal = document.getElementById('roadGoal').value.trim();
@@ -1303,29 +1398,9 @@ async function runRoadmap() {
   showLoading('roadmapResult', 'roadBtn');
   try {
     const d = await api('/api/roadmap', { goal, currentSkills: skills });
-    let html = '<div class="rm-list">';
-    d.stages.forEach((s, i) => {
-      const topics = s.topics.map(t => `<span class="tag-pill" style="margin-bottom:4px">${t}</span>`).join('');
-      const courses = s.courses.map(c => `<div class="rm-course-line">${c}</div>`).join('');
-      html += `<div class="rm-row">
-        <div class="rm-row-head" onclick="toggleStage(${i})">
-          <div class="rm-row-num">0${s.number}</div><div class="rm-row-title">${s.title}</div><div class="rm-row-dur">${s.duration}</div>
-          <span class="rm-chevron" id="rmChev${i}">▾</span>
-        </div>
-        <div class="rm-row-body" id="rmBody${i}">
-          <div class="rm-checkbox"><input type="checkbox" id="rmCheck${i}" onchange="updateRoadmapProgress()"><label for="rmCheck${i}">Mark complete</label></div>
-          <div class="rm-can-do"><strong>By the end of this stage:</strong> ${s.objective}</div>
-          <div class="f-label" style="margin-top:0">Topics</div>
-          <div class="tag-pills" style="margin-bottom:14px">${topics}</div>
-          <div class="f-label" style="margin-top:0">Courses</div>${courses}
-          <div class="rm-project"><strong>Ship this:</strong> ${s.project}</div>
-        </div>
-      </div>`;
-    });
-    html += '</div>';
-    document.getElementById('roadmapResult').innerHTML = html;
-    S.stats.road = 5; updateStatDisplays();
-    showBadge('roadmapBadge');
+    S.roadmapResult = d;
+    renderRoadmapResult(d);
+    S.stats.road = 0; updateRoadmapProgress();
   } catch (e) { document.getElementById('roadmapResult').innerHTML = errBox(e.message); }
   clearLoading('roadBtn');
 }
@@ -1336,10 +1411,24 @@ function toggleStage(i) {
   body.classList.toggle('open', !open);
   chev.classList.toggle('open', !open);
 }
-function updateRoadmapProgress() {
-  const total = document.querySelectorAll('[id^="rmCheck"]').length;
+async function updateRoadmapProgress() {
+  const checkboxes = document.querySelectorAll('[id^="rmCheck"]');
+  const total = checkboxes.length;
   const done = document.querySelectorAll('[id^="rmCheck"]:checked').length;
-  if (total > 0) { S.stats.road = Math.round(done / total * 100); updateStatDisplays(); }
+  if (total > 0) {
+    S.stats.road = Math.round(done / total * 100);
+    updateStatDisplays();
+  }
+
+  if (S.roadmapResult && S.roadmapResult.stages) {
+    S.roadmapResult.stages.forEach((s, idx) => {
+      const cb = document.getElementById('rmCheck' + idx);
+      if (cb) s.completed = cb.checked;
+    });
+    try {
+      await api('/api/profile', { roadmap_result: S.roadmapResult });
+    } catch (e) { console.error('Failed to save roadmap progress:', e); }
+  }
 }
 
 // ===== COURSES =====
@@ -1367,6 +1456,24 @@ async function runCourses() {
 }
 
 // ===== SALARY =====
+function renderSalaryResult(d) {
+  const mx = Math.max(...d.levels.map(l => l.max));
+  const fmt = n => d.is_inr ? '₹' + (n/100000).toFixed(1) + 'L' : d.currency_symbol + (n/1000).toFixed(0) + 'k';
+  const bars = d.levels.map(l => {
+    const p = Math.round(l.max / mx * 100);
+    return `<div class="sal-bar-item"><div class="sal-bar-head"><span style="font-weight:600">${l.level}</span><span class="sal-bar-val">${fmt(l.min)} – ${fmt(l.max)}</span></div><div class="sal-bar-track"><div class="sal-bar-fill" style="width:0%" data-target="${p}"></div></div></div>`;
+  }).join('');
+  document.getElementById('salaryResult').innerHTML = `
+    <div class="sal-stat-row">
+      <div class="home-stat"><div class="home-stat-l">Demand score</div><div class="home-stat-v route-c">${d.demand_score}<sup>/100</sup></div></div>
+      <div class="home-stat"><div class="home-stat-l">5-year growth</div><div class="home-stat-v" style="font-size:21px">${d.growth_5yr}</div></div>
+      <div class="home-stat"><div class="home-stat-l">Market</div><div class="home-stat-v" style="font-size:17px">${d.market}</div></div>
+    </div>
+    <div class="sal-bars-card"><div class="f-label" style="margin-top:0;margin-bottom:16px">Salary by experience — ${d.role}</div>${bars}</div>
+    <div class="set-card" style="margin-bottom:0"><div class="set-head">What moves your pay up</div><div class="set-body"><div class="tag-pills" style="margin-top:0">${d.key_skills_for_pay.map(s => `<span class="tag-pill">${s}</span>`).join('')}</div><p style="margin-top:12px;font-size:13px;color:var(--sand)">${d.market_note}</p></div></div>`;
+  setTimeout(() => document.querySelectorAll('.sal-bar-fill').forEach(b => b.style.width = b.dataset.target + '%'), 80);
+}
+
 async function runSalary() {
   if (!S.token) { showAuth('login'); return; }
   const role = document.getElementById('salaryRole').value.trim();
@@ -1375,21 +1482,7 @@ async function runSalary() {
   showLoading('salaryResult', 'salaryBtn');
   try {
     const d = await api('/api/salary', { role, country });
-    const mx = Math.max(...d.levels.map(l => l.max));
-    const fmt = n => d.is_inr ? '₹' + (n/100000).toFixed(1) + 'L' : d.currency_symbol + (n/1000).toFixed(0) + 'k';
-    const bars = d.levels.map(l => {
-      const p = Math.round(l.max / mx * 100);
-      return `<div class="sal-bar-item"><div class="sal-bar-head"><span style="font-weight:600">${l.level}</span><span class="sal-bar-val">${fmt(l.min)} – ${fmt(l.max)}</span></div><div class="sal-bar-track"><div class="sal-bar-fill" style="width:0%" data-target="${p}"></div></div></div>`;
-    }).join('');
-    document.getElementById('salaryResult').innerHTML = `
-      <div class="sal-stat-row">
-        <div class="home-stat"><div class="home-stat-l">Demand score</div><div class="home-stat-v route-c">${d.demand_score}<sup>/100</sup></div></div>
-        <div class="home-stat"><div class="home-stat-l">5-year growth</div><div class="home-stat-v" style="font-size:21px">${d.growth_5yr}</div></div>
-        <div class="home-stat"><div class="home-stat-l">Market</div><div class="home-stat-v" style="font-size:17px">${d.market}</div></div>
-      </div>
-      <div class="sal-bars-card"><div class="f-label" style="margin-top:0;margin-bottom:16px">Salary by experience — ${d.role}</div>${bars}</div>
-      <div class="set-card" style="margin-bottom:0"><div class="set-head">What moves your pay up</div><div class="set-body"><div class="tag-pills" style="margin-top:0">${d.key_skills_for_pay.map(s => `<span class="tag-pill">${s}</span>`).join('')}</div><p style="margin-top:12px;font-size:13px;color:var(--sand)">${d.market_note}</p></div></div>`;
-    setTimeout(() => document.querySelectorAll('.sal-bar-fill').forEach(b => b.style.width = b.dataset.target + '%'), 80);
+    renderSalaryResult(d);
   } catch (e) { document.getElementById('salaryResult').innerHTML = errBox(e.message); }
   clearLoading('salaryBtn');
 }

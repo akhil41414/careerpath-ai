@@ -19,18 +19,25 @@ module.exports = async (req, res) => {
 
   if (req.method === 'POST') {
     const b = req.body;
-    const { data, error } = await supabase.from('profiles').upsert({
+    const updateObj = {
       user_id: user.userId,
-      name: b.name, email: b.email, target_role: b.target_role,
-      education: b.education, experience: b.experience,
-      skills: b.skills || [], interests: b.interests || [],
-      career_result: b.career_result || null,
-      resume_result: b.resume_result || null,
-      job_result: b.job_result || null,
-      roadmap_result: b.roadmap_result || null,
-      salary_result: b.salary_result || null,
       updated_at: new Date().toISOString()
-    }, { onConflict: 'user_id' }).select().single();
+    };
+
+    if (b.name !== undefined) updateObj.name = b.name;
+    if (b.email !== undefined) updateObj.email = b.email;
+    if (b.target_role !== undefined) updateObj.target_role = b.target_role;
+    if (b.education !== undefined) updateObj.education = b.education;
+    if (b.experience !== undefined) updateObj.experience = b.experience;
+    if (b.skills !== undefined) updateObj.skills = b.skills;
+    if (b.interests !== undefined) updateObj.interests = b.interests;
+    if (b.career_result !== undefined) updateObj.career_result = b.career_result;
+    if (b.resume_result !== undefined) updateObj.resume_result = b.resume_result;
+    if (b.job_result !== undefined) updateObj.job_result = b.job_result;
+    if (b.roadmap_result !== undefined) updateObj.roadmap_result = b.roadmap_result;
+    if (b.salary_result !== undefined) updateObj.salary_result = b.salary_result;
+
+    const { data, error } = await supabase.from('profiles').upsert(updateObj, { onConflict: 'user_id' }).select().single();
     if (error) return res.status(500).json({ error: error.message });
     return res.status(200).json({ profile: data });
   }
