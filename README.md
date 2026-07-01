@@ -1,5 +1,7 @@
 # Pathly — AI Career Guidance Platform
 
+**🌐 Live Demo:** [https://careerpath-ai-five.vercel.app/](https://careerpath-ai-five.vercel.app/)
+
 Pathly is an intelligent career mapping and guidance platform designed to help students and professionals navigate their career paths with precision.
 
 ## ⚠ The Problem Statement
